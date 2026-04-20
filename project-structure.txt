@@ -1,0 +1,28 @@
+meridian-ops-api/
+  .github/
+    copilot-instructions.md
+  src/
+    index.js
+    routes/
+      orders.js
+    data/
+      orderStore.js
+    services/
+      orderService.js
+      paymentService.js
+      notificationService.js
+    repositories/
+      order_repository.py
+  package.json
+
+search-service/
+  search/
+    __init__.py
+    query_builder.py
+  tests/
+    test_query_builder.py
+
+pricing-engine/
+  pricing/
+    __init__.py
+    discount.py
