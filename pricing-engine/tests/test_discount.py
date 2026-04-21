@@ -314,13 +314,13 @@ def test_breakdown_contains_first_purchase_entry():
 def test_negative_subtotal_raises_value_error():
     """Negative subtotals are not permitted and must raise ValueError."""
     with pytest.raises(ValueError, match="Subtotal cannot be negative"):
-        calculate_discount(-1, "bronze")
+        calculate_discount(-1, "bronze", order_date=A_MONDAY)
 
 
 def test_invalid_tier_raises_value_error():
     """An unrecognised customer tier must raise ValueError."""
     with pytest.raises(ValueError, match="Unrecognised tier"):
-        calculate_discount(10_000, "diamond")
+        calculate_discount(10_000, "diamond", order_date=A_MONDAY)
 
 
 def test_all_valid_tiers_are_accepted():
