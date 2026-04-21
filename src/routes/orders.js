@@ -2,8 +2,11 @@ const express = require("express");
 const router = express.Router();
 const db = require("../data/orderStore");
 
-/** Simple email format check (local@domain.tld). */
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * Safe email format check: local@domain-label.tld
+ * Uses [^\s@.] for domain labels to prevent polynomial backtracking (ReDoS).
+ */
+const EMAIL_RE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 /**
  * Returns a RFC 7807 Problem Details JSON response.
@@ -37,6 +40,31 @@ function validateId(req, res, next) {
     );
   }
   next();
+}
+
+/**
+ * Validates a single order item.
+ * @param {unknown} item - The item to validate.
+ * @param {number} itemIndex - The index of the item in the items array.
+ * @returns {{ detail: string } | null} An error object with a detail message, or null if valid.
+ */
+function validateItem(item, itemIndex) {
+  if (!item || typeof item !== "object") {
+    return { detail: `items[${itemIndex}] must be an object.` };
+  }
+  if (typeof item.sku !== "string" || item.sku.trim() === "") {
+    return { detail: `items[${itemIndex}].sku must be a non-empty string.` };
+  }
+  if (typeof item.name !== "string" || item.name.trim() === "") {
+    return { detail: `items[${itemIndex}].name must be a non-empty string.` };
+  }
+  if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+    return { detail: `items[${itemIndex}].quantity must be a positive integer.` };
+  }
+  if (!Number.isInteger(item.priceInCents) || item.priceInCents < 0) {
+    return { detail: `items[${itemIndex}].priceInCents must be a non-negative integer (cents).` };
+  }
+  return null;
 }
 
 /**
@@ -104,51 +132,15 @@ router.post("/", (req, res) => {
     );
   }
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (!item || typeof item !== "object") {
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+    const itemError = validateItem(items[itemIndex], itemIndex);
+    if (itemError) {
       return problemResponse(
         res,
         400,
         "https://meridian.internal/errors/validation",
         "Validation Error",
-        `items[${i}] must be an object.`
-      );
-    }
-    if (typeof item.sku !== "string" || item.sku.trim() === "") {
-      return problemResponse(
-        res,
-        400,
-        "https://meridian.internal/errors/validation",
-        "Validation Error",
-        `items[${i}].sku must be a non-empty string.`
-      );
-    }
-    if (typeof item.name !== "string" || item.name.trim() === "") {
-      return problemResponse(
-        res,
-        400,
-        "https://meridian.internal/errors/validation",
-        "Validation Error",
-        `items[${i}].name must be a non-empty string.`
-      );
-    }
-    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
-      return problemResponse(
-        res,
-        400,
-        "https://meridian.internal/errors/validation",
-        "Validation Error",
-        `items[${i}].quantity must be a positive integer.`
-      );
-    }
-    if (!Number.isInteger(item.priceInCents) || item.priceInCents < 0) {
-      return problemResponse(
-        res,
-        400,
-        "https://meridian.internal/errors/validation",
-        "Validation Error",
-        `items[${i}].priceInCents must be a non-negative integer (cents).`
+        itemError.detail
       );
     }
   }

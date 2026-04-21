@@ -59,7 +59,7 @@ const VALID_ITEM = { sku: "KB-2400", name: "Mechanical Keyboard", quantity: 1, p
 
 beforeEach(() => {
   // Restore in-memory store to a clean copy of the seed data.
-  const fresh = SEED.map((o) => ({ ...o, items: o.items.map((i) => ({ ...i })) }));
+  const fresh = SEED.map((order) => ({ ...order, items: order.items.map((item) => ({ ...item })) }));
   // Overwrite the internal orders array and reset the ID counter via the
   // exported module – we patch through the known public API where possible,
   // and reset internal state via a test-only backdoor on the module itself.
@@ -84,7 +84,7 @@ describe("GET /api/orders", () => {
   it("filters by status query parameter", async () => {
     const res = await request(app).get("/api/orders?status=shipped");
     expect(res.status).toBe(200);
-    res.body.data.forEach((o) => expect(o.status).toBe("shipped"));
+    res.body.data.forEach((order) => expect(order.status).toBe("shipped"));
   });
 
   it("returns empty array for unknown status filter", async () => {

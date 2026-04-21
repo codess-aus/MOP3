@@ -80,7 +80,7 @@ module.exports = {
    * @param {Array} seed
    */
   _reset(seed) {
-    orders = seed.map((o) => ({ ...o }));
-    nextId = Math.max(...seed.map((o) => o.id), 0) + 1;
+    orders = seed.map((order) => ({ ...order }));
+    nextId = (seed.length > 0 ? Math.max(...seed.map((order) => order.id)) : 0) + 1;
   },
 };
