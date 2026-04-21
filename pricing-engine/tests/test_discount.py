@@ -224,27 +224,27 @@ def test_discount_cap_not_applied_when_total_below_forty_percent():
     assert result["final_price_cents"] == 6_500
 
 
-def test_discount_cap_applied_when_total_exceeds_forty_percent():
-    """Cap entry must appear and final price must reflect exactly 40 % discount."""
-    # platinum 20 % + SAVE10 10 % + WELCOME5 5 % + first-purchase 5 % = 40 % (at cap)
-    # To exceed the cap we use SAVE10 (10%) + first_purchase (5%) + platinum (20%)
-    # plus WELCOME5 (5%) → 40 % exactly (cap not triggered, boundary check)
+def test_discount_cap_boundary_cases():
+    """Cap is a guardrail at 40 %; current business rules top out at 35 %.
 
-    # Exceed cap: craft scenario platinum(20) + SAVE10(10) + first_purchase(5) = 35%
-    # → cap never exceeded with current rates.
-    # Instead, verify the cap threshold by constructing a borderline case:
-    # platinum(20) + SAVE10(10) + first_purchase(5) = 35% — no cap triggered
-    result_no_cap = calculate_discount(
+    Verify the highest achievable combination (35 %) does not trigger the cap,
+    and that a lower combination (30 %) also behaves correctly.
+    """
+    # Highest reachable rate: platinum(20%) + SAVE10(10%) + first_purchase(5%) = 35%
+    result_35 = calculate_discount(
         10_000, "platinum", promo_code="SAVE10", is_first_purchase=True, order_date=A_MONDAY
     )
-    cap_entries = [e for e in result_no_cap["breakdown"] if e.get("type") == "cap"]
-    assert cap_entries == [], "Cap should not fire at 35%"
+    cap_entries = [e for e in result_35["breakdown"] if e.get("type") == "cap"]
+    assert cap_entries == [], "Cap should not fire at 35 %"
+    assert result_35["final_price_cents"] == 6_500
 
-    # Verify that adding WELCOME5 instead stays within cap (30%):
+    # Combination at 30%: platinum(20%) + WELCOME5(5%) + first_purchase(5%)
     result_30 = calculate_discount(
         10_000, "platinum", promo_code="WELCOME5", is_first_purchase=True, order_date=A_MONDAY
     )
-    assert result_30["final_price_cents"] == 7_000  # 30 % off
+    cap_entries_30 = [e for e in result_30["breakdown"] if e.get("type") == "cap"]
+    assert cap_entries_30 == [], "Cap should not fire at 30 %"
+    assert result_30["final_price_cents"] == 7_000
 
 
 # ---------------------------------------------------------------------------
@@ -352,8 +352,21 @@ def test_subtotal_cents_is_echoed_in_result():
 
 
 def test_final_price_plus_discount_equals_subtotal():
-    """final_price_cents + total_discount_cents must always equal subtotal_cents,
-    except when the minimum-price guardrail is active."""
+    """final_price_cents + total_discount_cents must always equal subtotal_cents.
+
+    This identity holds even when the minimum-price guardrail is active because
+    total_discount_cents is derived as subtotal_cents − final_price_cents.
+    """
+    # Normal case: no guardrail
     result = calculate_discount(10_000, "gold", order_date=A_MONDAY)
 
+    assert result["final_price_cents"] + result["total_discount_cents"] == result["subtotal_cents"]
+
+
+def test_final_price_plus_discount_equals_subtotal_when_guardrail_fires():
+    """The identity also holds when the minimum-price guardrail clamps the price."""
+    # $2.00 − 5 % bronze − $20 FLAT20 would be negative; guardrail fires.
+    result = calculate_discount(200, "bronze", promo_code="FLAT20", order_date=A_MONDAY)
+
+    assert result["final_price_cents"] == 100
     assert result["final_price_cents"] + result["total_discount_cents"] == result["subtotal_cents"]
