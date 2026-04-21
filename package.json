@@ -13,8 +13,9 @@
     "express": "^5.1.0"
   },
   "devDependencies": {
+    "eslint": "^9.27.0",
     "jest": "^30.0.0",
-    "eslint": "^9.27.0"
+    "supertest": "^7.2.2"
   },
   "engines": {
     "node": ">=22.0.0"

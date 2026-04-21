@@ -73,4 +73,14 @@ module.exports = {
     orders.splice(index, 1);
     return true;
   },
+
+  /**
+   * Replaces the in-memory store with the provided seed data.
+   * Intended for test use only.
+   * @param {Array} seed
+   */
+  _reset(seed) {
+    orders = seed.map((o) => ({ ...o }));
+    nextId = Math.max(...seed.map((o) => o.id), 0) + 1;
+  },
 };
