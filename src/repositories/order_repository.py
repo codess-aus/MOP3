@@ -68,8 +68,10 @@ class order_repository:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        query = f"SELECT * FROM orders WHERE customer_email LIKE '%{customer_input}%'"
-        cursor.execute(query)
+        cursor.execute(
+            "SELECT * FROM orders WHERE customer_email LIKE ?",
+            (f"%{customer_input}%",),
+        )
 
         results = cursor.fetchall()
         conn.close()
